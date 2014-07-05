@@ -51,23 +51,28 @@ module Stove
     #   the cookbook to upload
     #
     def upload(cookbook)
+      # body = Net::HTTP::Post::Multipart.new('cookbooks',
+      #   'tarball'  => UploadIO.new(cookbook.tarball, 'application/x-compressed', "#{cookbook.name}.tar.gz"),
+      #   'cookbook' => { 'category' => cookbook.category }.to_json,
+      # )
+
       connection.post('cookbooks', {
-        tarball:  Faraday::UploadIO.new(cookbook.tarball, 'application/x-tar'),
-        cookbook: { category: cookbook.category }.to_json,
+        'tarball'  => File.new(cookbook.tarball),
+        'cookbook' => { 'category' => cookbook.category }.to_json,
       })
     end
 
     private
 
     #
-    # The Faraday connection object with lots of pretty middleware.
+    # The ChefAPI connection object with lots of pretty middleware.
     #
     def connection
-      @connection ||= ChefAPI::Connection.new(
-        endpoint: ENV['STOVE_ENDPOINT'] || DEFAULT_ENDPOINT,
-        client:   ENV['STOVE_CLIENT'],
-        key:      ENV['STOVE_KEY'],
-      )
+      @connection ||= ChefAPI::Connection.new do |conn|
+        conn.endpoint = ENV['STOVE_ENDPOINT'] || Config.endpoint || DEFAULT_ENDPOINT
+        conn.client   = ENV['STOVE_CLIENT']   || Config.client
+        conn.key      = ENV['STOVE_KEY']      || Config.key
+      end
     end
   end
 end
